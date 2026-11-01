@@ -106,13 +106,13 @@ def plot_search(points, best, history=None):
     fig.tight_layout()
     plt.show()
 
-def interpolation_matrix(x, xc):
+def interpolation_matrix(x, xc, kind="cubic"):
     from scipy.interpolate import interp1d
     A = np.zeros((len(x), len(xc)))
     for i in range(len(xc)):
         x0 = np.zeros(len(xc))
         x0[i] = 1
-        f = interp1d(xc, x0, kind='cubic')
+        f = interp1d(xc, x0, kind=kind)
         A[:, i] = f(x)
     return A
 
@@ -684,24 +684,25 @@ Fixed control-point locations make this **linear in the unknown control-point va
 
 ## Constructing the interpolation matrix
 
-Use cubic interpolation of unit vectors to construct each column of $A$.
+Use interpolation of unit vectors to construct each column of $A$.
 
 Here `xc` holds control-point locations, `yc` their values, and `x` the observation locations.
 
 ```python
 from scipy.interpolate import interp1d
+kind = 'cubic'  # or 'linear'
 A = np.zeros((len(x), len(xc)))
 for i in range(len(xc)):
     x0 = np.zeros(len(xc))
     x0[i] = 1
-    f = interp1d(xc, x0, kind='cubic')
+    f = interp1d(xc, x0, kind=kind)
     A[:, i] = f(x)
 ```
 
 Check the matrix representation against direct interpolation:
 
 ```python
-np.max(np.abs(A @ yc - interp1d(xc, yc, kind='cubic')(x)))
+np.max(np.abs(A @ yc - interp1d(xc, yc, kind=kind)(x)))
 ```
 
 The difference should be near floating-point roundoff. Each unit-vector response is one column of $A$.
@@ -716,11 +717,12 @@ Try lam = 0, 1, 100. Compare order = 1 and order = 2.
 ::: {.live-demo}
 ```{pyodide}
 lam, order = 10.0, 2
+kind = 'cubic'  # or 'linear'
 rng = np.random.default_rng(42)
 x = np.linspace(0, 10, 150)
 y = np.sin(x)+rng.normal(0, .4, len(x))
 knots = np.linspace(0, 10, 35)
-A = interpolation_matrix(x, knots)
+A = interpolation_matrix(x, knots, kind=kind)
 L = np.diff(np.eye(len(knots)), n=order, axis=0)
 As = np.vstack([A, np.sqrt(lam)*L])
 ys = np.r_[y, np.zeros(len(L))]
