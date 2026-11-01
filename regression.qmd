@@ -241,7 +241,8 @@ x = np.linspace(-10, 10, n)
 y = 0.5*x + 3.4 + rng.normal(0, sigma, n)
 A = np.column_stack([x, np.ones(n)])
 c = np.linalg.inv(A.T.dot(A)).dot(A.T).dot(y)
-print('Slope and intercept:', np.round(c, 3))
+print('True slope and intercept:  ', [0.5, 3.4])
+print('Fitted slope and intercept:', np.round(c, 3))
 plot_fit(x, y, x, A@c, 0.5*x+3.4)
 ```
 :::
