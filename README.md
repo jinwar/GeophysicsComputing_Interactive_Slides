@@ -4,7 +4,7 @@ Quarto + Quarto Live lectures for GPGN 436/536, Ge Jin, Colorado School of Mines
 
 ## Regression
 
-The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 49 content slides plus a title slide and 15 editable demonstrations.
+The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 50 content slides plus a title slide and 15 editable demonstrations.
 
 The sequence for polynomial regression is explanation, fitting demonstration, coefficient uncertainty, then repeated-fit demonstration. All added measurement noise is Gaussian. Uniform random draws in search methods sample the parameter domain or make acceptance decisions; they are not measurement noise.
 
