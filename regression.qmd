@@ -92,7 +92,8 @@ def plot_search(points, best, history=None, connect=True, starts=None):
     plt.close('all')
     x, y, truth, _ = nonlinear_data()
     a = np.linspace(0, 2, 85)
-    aa, bb = np.meshgrid(a, a)
+    b = np.linspace(0, 3, 128)
+    aa, bb = np.meshgrid(a, b)
     z = np.sum((np.sin(20*aa[...,None]*x)+aa[...,None]*bb[...,None]-y)**2, axis=-1)
     fig, axes = plt.subplots(1, 2, figsize=(9, 3))
     axes[0].contourf(aa, bb, np.log10(z+1e-9), 24, cmap='viridis')
@@ -110,7 +111,7 @@ def plot_search(points, best, history=None, connect=True, starts=None):
         axes[0].legend(fontsize=7, loc='lower right')
     axes[0].plot(*truth, 'wx', ms=9)
     axes[0].plot(*best, 'ro', ms=5)
-    axes[0].set(xlabel='alpha', ylabel='beta', title='log10 SSE and search points', xlim=(0,2), ylim=(0,2))
+    axes[0].set(xlabel='alpha', ylabel='beta', title='log10 SSE and search points', xlim=(0,2), ylim=(0,3))
     axes[1].plot(x, y, '.', alpha=.5, label='Data')
     axes[1].plot(x, model(best,x), color='#c0502d', label='Estimated')
     axes[1].plot(x, model(truth,x), 'k--', label='True')
@@ -804,8 +805,9 @@ Try ngrid = 20 and 80. How much does the best model change?
 ```{pyodide}
 objective.evaluations = 0
 ngrid = 40
-v = np.linspace(0, 2, ngrid)
-points = np.array([(a, b) for a in v for b in v])
+alpha = np.linspace(0, 2, ngrid)
+beta = np.linspace(0, 3, ngrid)
+points = np.array([(a, b) for a in alpha for b in beta])
 errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
 print('True parameters (alpha, beta):', nonlinear_data()[2])
@@ -839,7 +841,7 @@ Change trials. The same seed makes comparisons reproducible.
 objective.evaluations = 0
 trials = 2000
 rng = np.random.default_rng(42)
-points = rng.uniform(0, 2, size=(trials, 2))
+points = rng.uniform([0, 0], [2, 3], size=(trials, 2))
 errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
 print('True parameters (alpha, beta):', nonlinear_data()[2])
@@ -964,7 +966,7 @@ for i, start in enumerate(starts):
     current = objective(p); chain = []; costs = []; accepted = 0
     for k in range(steps):
         candidate = p+rng.normal(0, proposal_sd, 2)
-        if np.all((candidate >= 0) & (candidate <= 2)):
+        if np.all((candidate >= 0) & (candidate <= [2, 3])):
             proposed = objective(candidate)
             if np.log(rng.random()) < -(proposed-current)/(2*sigma**2):
                 p = candidate; current = proposed; accepted += 1
