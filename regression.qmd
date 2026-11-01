@@ -1,0 +1,887 @@
+---
+title: "Regression"
+subtitle: "GPGN 436/536 · Module 09"
+author: "Ge Jin · Colorado School of Mines"
+engine: markdown
+format:
+  live-revealjs:
+    theme: simple
+    css: slides.css
+    width: 1280
+    height: 900
+    margin: 0.06
+    center: false
+    slide-number: c/t
+    transition: none
+    navigation-mode: linear
+    controls: true
+    history: true
+    footer: "Geophysical Computing · Regression"
+    code-copy: true
+    preview-links: false
+pyodide:
+  packages: [numpy, matplotlib]
+  cell-options:
+    autorun: true
+    fig-width: 8
+    fig-height: 3
+    max-lines: 10
+    min-lines: 3
+---
+
+```{pyodide}
+#| include: false
+"""Shared plotting and numerical helpers for Module 09. All data are synthetic."""
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams.update({'figure.figsize': (8, 3), 'figure.dpi': 100,
+                     'font.size': 11, 'axes.spines.top': False,
+                     'axes.spines.right': False, 'axes.grid': True,
+                     'grid.alpha': .18})
+
+def plot_fit(x, y, xp, prediction, truth=None):
+    plt.close('all')
+    fig, ax = plt.subplots()
+    ax.scatter(x, y, s=14, alpha=.65, label='Observations')
+    ax.plot(xp, prediction, color='#c0502d', lw=2, label='Fit')
+    if truth is not None:
+        ax.plot(xp, truth, 'k--', lw=1.3, label='True relation')
+    ax.set(xlabel='x', ylabel='y')
+    ax.legend(loc='best', fontsize=9)
+    fig.tight_layout()
+    plt.show()
+
+def poly_data(sigma=3., n=100, seed=42):
+    x = np.linspace(-2, 2, n)
+    c = np.array([1., 2., 3., 4., 5.])
+    y = np.polyval(c, x) + np.random.default_rng(seed).normal(0, sigma, n)
+    return x, y, c
+
+def nonlinear_data():
+    x = np.linspace(0, 1, 100)
+    truth = np.array([1.21, 1.54])
+    sigma = .2
+    y = model(truth, x) + np.random.default_rng(42).normal(0, sigma, x.size)
+    return x, y, truth, sigma
+
+def model(p, x):
+    return np.sin(20*p[0]*x) + p[0]*p[1]
+
+def objective(p):
+    x, y, _, _ = nonlinear_data()
+    return np.sum((model(p, x)-y)**2)
+
+def gradient(p, h=1e-5):
+    eye = np.eye(len(p))*h
+    return np.array([(objective(p+d)-objective(p-d))/(2*h) for d in eye])
+
+def hessian(p, h=1e-4):
+    eye = np.eye(len(p))*h
+    return np.column_stack([(gradient(p+d)-gradient(p-d))/(2*h) for d in eye])
+
+def plot_search(points, best, history=None):
+    plt.close('all')
+    x, y, truth, _ = nonlinear_data()
+    a = np.linspace(0, 2, 85)
+    aa, bb = np.meshgrid(a, a)
+    z = np.sum((np.sin(20*aa[...,None]*x)+aa[...,None]*bb[...,None]-y)**2, axis=-1)
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+    axes[0].contourf(aa, bb, np.log10(z+1e-9), 24, cmap='viridis')
+    points = np.asarray(points)
+    axes[0].plot(points[:,0], points[:,1], '.-', color='#f4ab55', ms=2, lw=.6)
+    axes[0].plot(*truth, 'wx', ms=9)
+    axes[0].plot(*best, 'ro', ms=5)
+    axes[0].set(xlabel='alpha', ylabel='beta', title='log10 SSE and search points', xlim=(0,2), ylim=(0,2))
+    axes[1].plot(x, y, '.', alpha=.5, label='Data')
+    axes[1].plot(x, model(best,x), color='#c0502d', label='Estimated')
+    axes[1].plot(x, model(truth,x), 'k--', label='True')
+    axes[1].set(xlabel='x', ylabel='y', title=f'Best SSE = {objective(best):.2f}')
+    axes[1].legend(fontsize=8)
+    fig.tight_layout()
+    plt.show()
+
+def interpolation_matrix(x, knots):
+    eye = np.eye(len(knots))
+    return np.column_stack([np.interp(x, knots, e) for e in eye])
+
+```
+
+
+## How to use these slides
+
+Wait for Python to load, then edit a code block and select **Run Code**.
+
+- Arrow controls move between slides. **Esc** opens the overview.
+- **Start Over** restores the original code in a block.
+- Examples run independently of earlier demonstrations, after shared setup loads.
+- Your edits stay in your browser session. They do not change the course repository.
+
+[Full helper code](helpers.py) contains plotting utilities and numerical derivatives.
+
+::: {.notes}
+Open this presentation before class so that the runtime and packages load. Code editors scroll when needed. Click outside the editor before using keyboard navigation. A browser refresh resets runtime state.
+:::
+
+
+## The regression problem
+
+Given observations $\mathbf d$, choose model parameters $\mathbf m$ to minimize an objective:
+
+$$\hat{\mathbf m}=\arg\min_{\mathbf m} F(\mathbf m).$$
+
+$$F(\mathbf m)=\underbrace{\|G(\mathbf m)-\mathbf d\|_2^2}_{\text{data misfit}}
++\underbrace{\lambda\|L\mathbf m-\mathbf q\|_2^2}_{\text{prior constraint}}.$$
+
+We choose both the objective and the algorithm used to minimize it.
+
+
+## Interpolation versus regression
+
+**Interpolation:** reproduce supplied values at their sample locations.
+
+**Regression:** estimate a relation that explains the observations, allowing residuals.
+
+Noise can make an interpolating curve follow fluctuations that are not part of the underlying relation.
+
+::: {.prompt}
+If every observation contains measurement error, should our model pass through every point?
+:::
+
+
+## Interpolation and a fitted line
+
+::: {.prompt}
+Change the noise level. Which curve follows the noise?
+:::
+
+::: {.live-demo}
+```{pyodide}
+sigma = 0.5
+rng = np.random.default_rng(12)
+x = np.linspace(0, 5, 12)
+y = 0.7*x + 1 + rng.normal(0, sigma, len(x))
+xp = np.linspace(0, 5, 200)
+c = np.polyfit(x, y, 1)
+plt.close('all')
+plt.plot(x, y, 'o-', label='Linear interpolation')
+plt.plot(xp, np.polyval(c, xp), label='Regression')
+plt.plot(xp, .7*xp+1, 'k--', label='True')
+plt.xlabel('x'); plt.ylabel('y'); plt.legend(); plt.tight_layout(); plt.show()
+```
+:::
+
+
+## A straight line and many observations
+
+$$y_i=c_1x_i+c_0+\epsilon_i.$$
+
+Two unknown coefficients, $n$ observations:
+
+$$\underbrace{\begin{bmatrix}x_1&1\\x_2&1\\\vdots&\vdots\\x_n&1\end{bmatrix}}_{A\ (n\times2)}
+\underbrace{\begin{bmatrix}c_1\\c_0\end{bmatrix}}_{\mathbf c}
+\approx\underbrace{\begin{bmatrix}y_1\\y_2\\\vdots\\y_n\end{bmatrix}}_{\mathbf y}.$$
+
+For noisy data, these equations generally have no exact simultaneous solution.
+
+
+## Residuals and least squares
+
+$$\mathbf r=A\mathbf c-\mathbf y,$$
+$$E(\mathbf c)=\sum_{i=1}^{n}r_i^2=\mathbf r^T\mathbf r.$$
+
+Least squares minimizes the **squared** $L_2$ norm of the residual vector.
+
+Each residual measures a prediction minus an observation. Large residuals contribute disproportionately to $E$.
+
+
+## Deriving the normal equations
+
+$$E=(A\mathbf c-\mathbf y)^T(A\mathbf c-\mathbf y)$$
+$$=\mathbf c^TA^TA\mathbf c-2\mathbf c^TA^T\mathbf y+\mathbf y^T\mathbf y.$$
+
+Set the gradient to zero:
+
+$$\nabla_{\mathbf c}E=2A^T(A\mathbf c-\mathbf y)=0,$$
+$$\boxed{A^TA\hat{\mathbf c}=A^T\mathbf y}.$$
+
+
+## The least-squares solution
+
+For full column rank $A$:
+
+$$\hat{\mathbf c}=(A^TA)^{-1}A^T\mathbf y.$$
+
+In Python, solve the least-squares problem directly:
+
+```python
+c = np.linalg.lstsq(A, y, rcond=None)[0]
+```
+
+This avoids explicitly forming and inverting $A^TA$.
+
+::: {.notes}
+The formula explains the mapping from data to parameters. Numerical solvers based on QR or SVD avoid the loss of conditioning from forming the normal matrix.
+:::
+
+
+## Python: fitting a straight line
+
+::: {.prompt}
+Change sigma or the number of observations. Predict the effect before running.
+:::
+
+::: {.live-demo}
+```{pyodide}
+sigma, n = 1.0, 40
+rng = np.random.default_rng(42)
+x = np.linspace(-10, 10, n)
+y = 0.5*x + 3.4 + rng.normal(0, sigma, n)
+A = np.column_stack([x, np.ones(n)])
+c = np.linalg.lstsq(A, y, rcond=None)[0]
+print('Slope and intercept:', np.round(c, 3))
+plot_fit(x, y, x, A@c, 0.5*x+3.4)
+```
+:::
+
+
+## 1-D polynomial fitting
+
+$$y=c_mx^m+c_{m-1}x^{m-1}+\cdots+c_1x+c_0.$$
+
+The curve can be nonlinear in $x$ while remaining **linear in its unknown coefficients**.
+
+$$A=\begin{bmatrix}
+x_1^m&x_1^{m-1}&\cdots&x_1&1\\
+\vdots&\vdots&&\vdots&\vdots\\
+x_n^m&x_n^{m-1}&\cdots&x_n&1
+\end{bmatrix},\quad
+\mathbf c=\begin{bmatrix}c_m\\c_{m-1}\\\vdots\\c_0\end{bmatrix}.$$
+
+The same least-squares solver applies.
+
+
+## Python: 1-D polynomial fitting
+
+::: {.prompt}
+Fit the curve first. Try degrees 2, 4, and 8.
+:::
+
+::: {.live-demo}
+```{pyodide}
+degree, sigma = 4, 3.0
+x, y, truth = poly_data(sigma=sigma)
+A = np.vander(x, degree+1)
+c = np.linalg.lstsq(A, y, rcond=None)[0]
+xp = np.linspace(-2, 2, 200)
+print('Fitted coefficients:', np.round(c, 3))
+plot_fit(x, y, xp, np.polyval(c, xp), np.polyval(truth, xp))
+```
+:::
+
+
+## Error sensitivity of the coefficients
+
+Keep sample locations and the polynomial degree fixed. Assume full column rank.
+
+$$G=(A^TA)^{-1}A^T,\qquad \hat{\mathbf c}=G\mathbf y.$$
+
+A data perturbation produces a coefficient perturbation:
+
+$$\boxed{\delta\mathbf c=G\,\delta\mathbf y}.$$
+
+Each row of $G$ controls how data errors contribute to one coefficient.
+
+
+## Coefficient standard deviations
+
+For independent, zero-mean data errors with standard deviation $\sigma$:
+
+$$\operatorname{Cov}(\delta\mathbf c)=\sigma^2GG^T,$$
+$$\boxed{\sigma_{c_j}=\sigma\sqrt{\sum_iG_{ji}^2}}.$$
+
+These are standard deviations of fitted coefficients across repeated datasets.
+
+They depend on noise level, sample locations, and basis scaling. They are **not residual misfits**.
+
+::: {.notes}
+For a general data covariance C_y, the coefficient covariance is G C_y G^T. The independent equal-variance assumption is needed for the simplified expression on the slide.
+:::
+
+
+## Python: repeated fits and coefficient spread
+
+::: {.prompt}
+Change sigma or repeats. Compare measured and predicted standard deviations.
+:::
+
+::: {.live-demo}
+```{pyodide}
+sigma, repeats = 3.0, 5000
+x, _, truth = poly_data(sigma=sigma)
+A = np.vander(x, len(truth))
+rng = np.random.default_rng(42)
+Y = np.polyval(truth, x)[:,None] + rng.normal(0, sigma, (len(x), repeats))
+C = np.linalg.lstsq(A, Y, rcond=None)[0]
+G = np.linalg.pinv(A)
+observed = C.std(axis=1, ddof=1)
+predicted = sigma*np.sqrt(np.sum(G**2, axis=1))
+print('Coefficient  observed SD  predicted SD')
+for j, (s, t) in enumerate(zip(observed, predicted)):
+    print(f'c{4-j}:          {s:.3f}        {t:.3f}')
+plt.close('all')
+fig, axes = plt.subplots(1, 5, figsize=(10, 2.5))
+for j, ax in enumerate(axes):
+    ax.hist(C[j], bins=30, color='#087e8b'); ax.axvline(truth[j], color='#c0502d')
+    ax.set_title(f'c{4-j}'); ax.set_yticks([])
+fig.tight_layout(); plt.show()
+```
+:::
+
+
+## 2-D polynomial surface fitting
+
+For a quadratic surface:
+
+$$z=c_0+c_1x+c_2x^2+c_3xy+c_4y+c_5y^2.$$
+
+One row of the design matrix is:
+
+$$A_i=[1,\ x_i,\ x_i^2,\ x_iy_i,\ y_i,\ y_i^2].$$
+
+Use the matching coefficient order $\mathbf c=[c_0,c_1,c_2,c_3,c_4,c_5]^T$.
+
+::: {.prompt}
+How many coefficients must we estimate? Is having six observations sufficient to guarantee a unique fit?
+:::
+
+
+## Python: fitting a surface
+
+::: {.prompt}
+Change the observation noise and compare recovered coefficients.
+:::
+
+::: {.live-demo}
+```{pyodide}
+rng = np.random.default_rng(42)
+x, y = rng.normal(size=(2, 100))
+A = np.column_stack([np.ones(100), x, x*x, x*y, y, y*y])
+truth = np.array([1, 2, .5, -.4, 1, .2])
+z = A@truth + rng.normal(0, .3, 100)
+c = np.linalg.lstsq(A, z, rcond=None)[0]
+print('True:', truth, '\nFit: ', np.round(c, 3))
+plt.close('all'); plt.scatter(z, A@c, s=15)
+plt.plot([z.min(), z.max()], [z.min(), z.max()], 'k--')
+plt.xlabel('Observed z'); plt.ylabel('Predicted z'); plt.tight_layout(); plt.show()
+```
+:::
+
+
+## Weighting measurements
+
+Give less influence to less precise observations:
+
+$$E=\|W(A\mathbf c-\mathbf y)\|_2^2=\sum_i w_i^2r_i^2.$$
+
+For independent errors with known standard deviations, use $w_i=1/\sigma_i$.
+
+$$A^TW^TWA\hat{\mathbf c}=A^TW^TW\mathbf y.$$
+
+**Convention:** $W$ scales residuals. The weights in the squared objective are $w_i^2=1/\sigma_i^2$.
+
+
+## Python: an outlier and its weight
+
+::: {.prompt}
+Try outlier_weight = 1, 0.3, and 0.05.
+:::
+
+::: {.live-demo}
+```{pyodide}
+outlier_weight = 0.1
+rng = np.random.default_rng(42)
+x = np.linspace(-10, 10, 20)
+y = .5*x+3.4+rng.normal(0, 1, len(x))
+y[0] = 10
+A = np.column_stack([x, np.ones(len(x))])
+w = np.ones(len(x)); w[0] = outlier_weight
+c = np.linalg.lstsq(w[:,None]*A, w*y, rcond=None)[0]
+print('Fitted slope and intercept:', np.round(c, 3))
+plot_fit(x, y, x, A@c, .5*x+3.4)
+```
+:::
+
+
+## Residual-based weights and robust fitting
+
+When outlier uncertainty is unknown, iteratively reweighted least squares can reduce its influence.
+
+1. Fit the model and calculate residuals.
+2. Update weights using residual size.
+3. Fit again and repeat until stable.
+
+An approximate $L_1$ fit uses residual multipliers
+$$w_i=\frac{1}{\sqrt{\max(|r_i|,\epsilon)}}.$$
+
+The positive floor $\epsilon$ prevents division by zero. These weights differ from known instrument uncertainties.
+
+
+## Why squared residuals emphasize outliers
+
+| Residual | Absolute loss $|r|$ | Squared loss $r^2$ |
+|---:|---:|---:|
+| 1 | 1 | 1 |
+| 2 | 2 | 4 |
+| 10 | 10 | 100 |
+
+A single large residual can dominate a least-squares objective.
+
+::: {.prompt}
+Would downweighting a real geological anomaly always be appropriate? The model and data need scientific interpretation.
+:::
+
+
+## Python: automated weighting
+
+::: {.prompt}
+Change the iteration count and observe how the fitted line moves.
+:::
+
+::: {.live-demo}
+```{pyodide}
+iterations = 8
+rng = np.random.default_rng(42)
+x = np.linspace(-10, 10, 20)
+y = .5*x+3.4+rng.normal(0, 1, len(x)); y[0] = 10
+A = np.column_stack([x, np.ones(len(x))]); w = np.ones(len(x))
+for k in range(iterations):
+    c = np.linalg.lstsq(w[:,None]*A, w*y, rcond=None)[0]
+    residual = A@c-y
+    w = 1/np.sqrt(np.maximum(np.abs(residual), .05))
+print('Final coefficients:', np.round(c, 3))
+plot_fit(x, y, x, A@c, .5*x+3.4)
+```
+:::
+
+
+## More observations do not guarantee identifiability
+
+A matrix with more rows than columns can still have dependent columns.
+
+If two columns are identical, the data determine only the **sum** of their coefficients.
+
+$$A\mathbf c=A(\mathbf c+\mathbf v)\quad\text{when }A\mathbf v=0.$$
+
+An overdetermined system can therefore be rank deficient. Prior constraints can select a solution, but cannot create missing information in the measurements.
+
+
+## Python: duplicate columns
+
+::: {.prompt}
+Check which combination is recovered even when individual coefficients are not.
+:::
+
+::: {.live-demo}
+```{pyodide}
+x = np.linspace(0, 1, 20)
+A = np.column_stack([np.ones(len(x)), x, x])
+truth = np.array([1., 2., 3.]); y = A@truth
+c = np.linalg.lstsq(A, y, rcond=None)[0]
+print('Rank:', np.linalg.matrix_rank(A), 'of', A.shape[1])
+print('True coefficients:', truth, '\nMinimum-norm fit:', c)
+print('Recovered sum:', c[1]+c[2])
+plot_fit(x, y, x, A@c)
+```
+:::
+
+
+## Tikhonov regularization
+
+Add a penalty on model magnitude:
+
+$$E=\|A\mathbf c-\mathbf y\|_2^2+\lambda\|\mathbf c\|_2^2.$$
+
+$$\boxed{(A^TA+\lambda I)\hat{\mathbf c}=A^T\mathbf y}.$$
+
+Larger $\lambda$ favors smaller coefficients and typically sacrifices data fit.
+
+We consistently use $\lambda$ as the weight in the objective.
+
+
+## Prior knowledge as extra equations
+
+For a preferred relation $L\mathbf c\approx\mathbf q$:
+
+$$E=\|A\mathbf c-\mathbf y\|_2^2+\lambda\|L\mathbf c-\mathbf q\|_2^2.$$
+
+Solve an augmented least-squares problem:
+
+$$A_* =\begin{bmatrix}A\\\sqrt{\lambda}L\end{bmatrix},\qquad
+\mathbf y_* =\begin{bmatrix}\mathbf y\\\sqrt{\lambda}\mathbf q\end{bmatrix}.$$
+
+The square root ensures the augmented objective has weight $\lambda$.
+
+
+## Magnitude, slope, and curvature constraints
+
+| Constraint | Operator on model values | Preferred behavior |
+|---|---|---|
+| Magnitude | $L=I$ | Small values |
+| First difference | $(L\mathbf c)_i=c_{i+1}-c_i$ | Small adjacent differences |
+| Second difference | $(L\mathbf c)_i=c_i-2c_{i+1}+c_{i+2}$ | Small curvature |
+
+A nonzero $\mathbf q$ can encode a preferred difference or trend.
+
+For derivatives, scale differences by grid spacing or its square. Here the examples penalize discrete differences on a fixed grid.
+
+
+## Smooth curve fitting with control points
+
+Represent a curve by values $c_j$ at fixed knots $t_j$.
+
+Linear interpolation predicts each observation:
+
+$$\hat y_i=\sum_j A_{ij}c_j.$$
+
+The interpolation weights form $A$. Estimate the knot values by fitting the data and penalizing roughness.
+
+This retains a flexible curve while controlling rapid fluctuations.
+
+
+## Constructing the interpolation matrix
+
+Column $j$ is the interpolated response to a unit value at knot $j$ and zeros at every other knot:
+
+$$A_{:j}=\operatorname{interp}(\mathbf x,\mathbf t,\mathbf e_j).$$
+
+```python
+eye = np.eye(len(knots))
+A = np.column_stack([
+    np.interp(x, knots, e) for e in eye
+])
+```
+
+This basis-response construction works because interpolation is linear in the knot values.
+
+
+## Python: smoothing strength and order
+
+::: {.prompt}
+Try lam = 0, 1, 100. Compare order = 1 and order = 2.
+:::
+
+::: {.live-demo}
+```{pyodide}
+lam, order = 10.0, 2
+rng = np.random.default_rng(42)
+x = np.linspace(0, 10, 150)
+y = np.sin(x)+rng.normal(0, .4, len(x))
+knots = np.linspace(0, 10, 35)
+A = interpolation_matrix(x, knots)
+L = np.diff(np.eye(len(knots)), n=order, axis=0)
+As = np.vstack([A, np.sqrt(lam)*L])
+ys = np.r_[y, np.zeros(len(L))]
+c = np.linalg.lstsq(As, ys, rcond=None)[0]
+plot_fit(x, y, x, A@c, np.sin(x))
+```
+:::
+
+
+## Nonlinear regression
+
+When predictions depend nonlinearly on unknown parameters, the objective may have several local minima.
+
+Our example is
+$$y=\sin(20\alpha x)+\alpha\beta,$$
+$$E(\alpha,\beta)=\sum_i[\sin(20\alpha x_i)+\alpha\beta-y_i]^2.$$
+
+We compare methods using the same synthetic data and objective.
+
+
+## Grid search
+
+Evaluate a regular grid of candidate models and retain the best tested point.
+
+- Shows the shape of the objective over the search region.
+- Finds the smallest value **on the chosen grid**.
+- Resolution and parameter bounds limit the result.
+- Cost grows exponentially with parameter count: $200^5=320$ billion evaluations.
+
+A running best estimate is available before the grid is complete.
+
+
+## Python: grid search
+
+::: {.prompt}
+Try ngrid = 20 and 80. How much does the best model change?
+:::
+
+::: {.live-demo}
+```{pyodide}
+ngrid = 40
+v = np.linspace(0, 2, ngrid)
+points = np.array([(a, b) for a in v for b in v])
+errors = np.array([objective(p) for p in points])
+best = points[np.argmin(errors)]
+print('Evaluations:', len(points), 'Best:', np.round(best, 4))
+plot_search(points[::max(1,len(points)//300)], best)
+```
+:::
+
+
+## Monte Carlo search
+
+Sample independent candidate models within chosen bounds and keep the best result so far.
+
+- Easy to implement, with a usable running estimate.
+- Can explore several basins without a derivative.
+- More trials can improve the best sampled value.
+- Finite sampling does not guarantee a global minimum or a chosen accuracy.
+
+Uniform sampling of the **search domain** is distinct from the Gaussian **measurement noise** used in our examples.
+
+
+## Python: Monte Carlo search
+
+::: {.prompt}
+Change trials. The same seed makes comparisons reproducible.
+:::
+
+::: {.live-demo}
+```{pyodide}
+trials = 2000
+rng = np.random.default_rng(42)
+points = rng.uniform(0, 2, size=(trials, 2))
+errors = np.array([objective(p) for p in points])
+best = points[np.argmin(errors)]
+print('Evaluations:', trials, 'Best:', np.round(best, 4))
+plot_search(points[::max(1,trials//300)], best)
+```
+:::
+
+
+## Gradient descent
+
+$$\mathbf m_{k+1}=\mathbf m_k-\eta\nabla E(\mathbf m_k).$$
+
+The step size $\eta$ controls progress and stability.
+
+For a numerical derivative:
+$$\frac{\partial E}{\partial m_j}\approx
+\frac{E(\mathbf m+h\mathbf e_j)-E(\mathbf m-h\mathbf e_j)}{2h}.$$
+
+The initial model determines which basin the method explores. Backtracking can reduce a step that increases the objective.
+
+
+## Python: step size and initial model
+
+::: {.prompt}
+Try start = [0.5, 1.0] versus [1.15, 1.0], or change rate.
+:::
+
+::: {.live-demo}
+```{pyodide}
+start, rate, steps = [0.5, 1.0], 1e-4, 80
+p = np.array(start, dtype=float); path = [p.copy()]
+for k in range(steps):
+    g = gradient(p); step = rate
+    for attempt in range(20):
+        candidate = p-step*g
+        if objective(candidate) < objective(p): break
+        step *= .5
+    if objective(candidate) >= objective(p): break
+    p = candidate; path.append(p.copy())
+print('Final parameters:', np.round(p, 4), 'Updates:', len(path)-1)
+plot_search(path, p)
+```
+:::
+
+
+## Newton’s method
+
+Use a quadratic approximation around the current model:
+
+$$E(\mathbf m+\Delta\mathbf m)\approx E(\mathbf m)
++\mathbf g^T\Delta\mathbf m+\tfrac12\Delta\mathbf m^TH\Delta\mathbf m.$$
+
+$$H\Delta\mathbf m=-\mathbf g,\qquad
+\mathbf m_{k+1}=\mathbf m_k+\Delta\mathbf m.$$
+
+Here $H$ is the Hessian. Newton can converge rapidly near a suitable minimum, but a poor initial model or indefinite Hessian can cause failure.
+
+
+## Python: Newton updates
+
+::: {.prompt}
+Try a nearby and a distant starting model. Plain Newton need not decrease error.
+:::
+
+::: {.live-demo}
+```{pyodide}
+p = np.array([1.15, 1.0]); path = [p.copy()]
+for k in range(8):
+    try:
+        delta = np.linalg.solve(hessian(p), -gradient(p))
+    except np.linalg.LinAlgError:
+        print('Singular Hessian'); break
+    candidate = p+delta
+    if not np.all(np.isfinite(candidate)): break
+    p = candidate; path.append(p.copy())
+    if np.linalg.norm(delta) < 1e-6: break
+print('Final parameters:', np.round(p, 4), 'Updates:', len(path)-1)
+plot_search(path, p)
+```
+:::
+
+
+## MCMC samples a probability distribution
+
+For Gaussian data errors with known $\sigma$ and a uniform prior within bounds:
+
+$$p(\mathbf m\mid\mathbf y)\propto
+\exp\left[-\frac{E(\mathbf m)}{2\sigma^2}\right].$$
+
+With a symmetric proposal, accept with probability
+$$a=\min\left(1,\exp\left[-\frac{E_{\rm new}-E_{\rm old}}{2\sigma^2}\right]\right).$$
+
+Accepting only improvements is randomized optimization. Posterior sampling also accepts some worse-fitting proposals.
+
+
+## Python: Metropolis sampling
+
+::: {.prompt}
+Change proposal_sd. Observe acceptance and the sampled parameter cloud.
+:::
+
+::: {.live-demo}
+```{pyodide}
+proposal_sd, steps, burn = 0.01, 3000, 500
+rng = np.random.default_rng(42)
+p = np.array([1.21, 1.54]); sigma = .2
+chain = []; accepted = 0; current = objective(p)
+for k in range(steps):
+    candidate = p+rng.normal(0, proposal_sd, 2)
+    if np.all((candidate >= 0) & (candidate <= 2)):
+        proposed = objective(candidate)
+        if np.log(rng.random()) < -(proposed-current)/(2*sigma**2):
+            p = candidate; current = proposed; accepted += 1
+    chain.append(p.copy())
+samples = np.array(chain)[burn:]
+print('Acceptance:', round(accepted/steps, 2), 'SD:', samples.std(axis=0).round(4))
+plt.close('all'); fig, ax = plt.subplots(1, 2, figsize=(9, 2.8))
+ax[0].plot(np.array(chain)[:,0], lw=.6); ax[0].axvline(burn, color='red')
+ax[0].set(xlabel='Iteration', ylabel='alpha')
+ax[1].scatter(samples[:,0], samples[:,1], s=2, alpha=.2)
+ax[1].set(xlabel='alpha', ylabel='beta'); fig.tight_layout(); plt.show()
+```
+:::
+
+
+## Interpreting an MCMC demonstration
+
+This short chain starts near the known synthetic solution and illustrates sampling within a basin.
+
+Its standard deviations **do not establish global uncertainty** in this multimodal problem.
+
+Reliable inference requires checking mixing, convergence, effective sample size, sensitivity to the prior, and multiple starting points.
+
+::: {.notes}
+This replaces the original improvement-only random-search example, which was labeled MCMC. No claim of global convergence is made for the short classroom chain.
+:::
+
+
+## Choosing a nonlinear method
+
+| Method | Useful property | Main limitation |
+|---|---|---|
+| Grid search | Objective map and best grid point | Cost grows rapidly with dimension |
+| Random search | Broad exploration and running best | No finite-sample accuracy guarantee |
+| Gradient descent | Uses local slope | Step size and local minima |
+| Newton | Rapid local convergence | Hessian cost and initialization |
+| MCMC | Samples a specified posterior | Mixing and convergence assessment |
+
+Optimization finds a good model. Sampling describes a distribution under stated assumptions.
+
+
+## Lab 1: production decline by linearization
+
+$$P(t)=A\exp(-\alpha t),\qquad \log P=\log A-\alpha t.$$
+
+Use a synthetic production dataset to estimate $A$ and $\alpha$ with a straight-line fit in log space.
+
+1. Plot observations and the fitted exponential in original units.
+2. Extend the prediction beyond the observation interval.
+3. Explain how the logarithm changes the error model and weights.
+
+::: {.notes}
+Adapted from the original deck's production-decline Lab Q1. The original slide supplies a model and figures, without numerical data. The following example supplies explicitly synthetic data for reproducibility.
+:::
+
+
+## Lab data: exponential decline
+
+::: {.prompt}
+Use this same dataset for Labs 1 and 3. All observed values must be positive for logs.
+:::
+
+::: {.live-demo}
+```{pyodide}
+rng = np.random.default_rng(42)
+t = np.linspace(0, 100, 100)
+P = 1000*np.exp(-.004*t)+rng.normal(0, 40, len(t))
+assert np.all(P > 0), 'Log fitting requires positive observations'
+# Start your solution here. Use np.log(P) for Lab 1.
+plt.close('all'); plt.scatter(t, P, s=12)
+plt.xlabel('Time (days)'); plt.ylabel('Production rate (bbl/day)')
+plt.tight_layout(); plt.show()
+```
+:::
+
+
+## Lab 2: smooth curve fitting
+
+Use the synthetic sinusoidal dataset in the smoothing demonstration.
+
+1. Construct the interpolation matrix using unit basis responses.
+2. Compare first- and second-difference regularization.
+3. Explore several regularization strengths and knot counts.
+4. Explain the tradeoff between data fit and smoothness.
+
+::: {.prompt}
+Which features persist as you change the regularization strength? Which look like noise?
+:::
+
+
+## Lab 3: nonlinear production decline
+
+Fit the same $P(t)=A\exp(-\alpha t)$ directly in production units.
+
+1. Define $E(A,\alpha)=\sum_i[Ae^{-\alpha t_i}-P_i]^2$.
+2. Apply a nonlinear method and report its initial model or search bounds.
+3. Compare the parameters and extrapolation with the log-space fit.
+4. Explain why the two objectives can produce different estimates.
+
+Use physically meaningful bounds and account for the different scales of $A$ and $\alpha$.
+
+
+## Questions to take away
+
+- When is a curved model still linear in its parameters?
+- What controls the standard deviation of a fitted coefficient?
+- How do measurement weights differ from robust residual weights?
+- What information does regularization add?
+- Why can a fast optimizer still return an unsuitable model?
+
+[Course notebooks](https://github.com/jinwar/GeophysicsComputing_GPGN436536)
+
+
+## Sources and further reading
+
+Course material adapted from Ge Jin’s **09 Regression** slide deck and the GPGN 436/536 regression notebook, co-developed with Jeff Shragge.
+
+- Menke, *Geophysical Data Analysis: Discrete Inverse Theory* (2018).
+- Kreyszig, *Advanced Engineering Mathematics*, 10th edition.
+- [NumPy least-squares solver](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html).
+- [Quarto Live documentation](https://r-wasm.github.io/quarto-live/).
+
+All interactive datasets here are synthetic. Measurement noise is Gaussian.
