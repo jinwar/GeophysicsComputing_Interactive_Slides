@@ -661,7 +661,9 @@ For derivatives, scale differences by grid spacing or its square. Here the examp
 
 ## Smooth curve fitting with control points
 
-Interpolation can be expressed as matrix multiplication.
+**The interpolation operation can be replaced by matrix multiplication. They are mathematically equivalent.**
+
+For fixed control-point and evaluation locations, this holds for both linear and cubic interpolation.
 
 With control points $(x_1,y_1),\ldots,(x_m,y_m)$, the interpolated value is
 
@@ -705,7 +707,7 @@ Check the matrix representation against direct interpolation:
 np.max(np.abs(A @ yc - interp1d(xc, yc, kind=kind)(x)))
 ```
 
-The difference should be near floating-point roundoff. Each unit-vector response is one column of $A$.
+**`A @ yc` and the interpolation call perform the same mathematical operation.** Any numerical difference comes from floating-point rounding.
 
 
 ## Python: smoothing strength and order
