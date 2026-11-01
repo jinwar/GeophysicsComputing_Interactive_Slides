@@ -35,8 +35,11 @@ def model(p, x):
     return np.sin(20*p[0]*x) + p[0]*p[1]
 
 def objective(p):
+    objective.evaluations += 1
     x, y, _, _ = nonlinear_data()
     return np.sum((model(p, x)-y)**2)
+
+objective.evaluations = 0
 
 def gradient(p, h=1e-5):
     eye = np.eye(len(p))*h
@@ -63,7 +66,7 @@ def plot_search(points, best, history=None, connect=True):
     axes[1].plot(x, y, '.', alpha=.5, label='Data')
     axes[1].plot(x, model(best,x), color='#c0502d', label='Estimated')
     axes[1].plot(x, model(truth,x), 'k--', label='True')
-    axes[1].set(xlabel='x', ylabel='y', title=f'Best SSE = {objective(best):.2f}')
+    axes[1].set(xlabel='x', ylabel='y', title=f'Best SSE = {np.sum((model(best, x)-y)**2):.2f}')
     axes[1].legend(fontsize=8)
     fig.tight_layout()
     plt.show()
