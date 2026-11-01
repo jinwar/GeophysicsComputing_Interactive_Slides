@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install numerical test dependencies
-        run: python -m pip install numpy matplotlib
+        run: python -m pip install numpy matplotlib scipy
       - name: Execute independent examples and mathematical checks
         env:
           MPLBACKEND: Agg
