@@ -453,8 +453,16 @@ y[0] = 10
 A = np.column_stack([x, np.ones(len(x))])
 w = np.ones(len(x)); w[0] = outlier_weight
 c = np.linalg.lstsq(w[:,None]*A, w*y, rcond=None)[0]
+print('True slope and intercept:  ', [0.5, 3.4])
 print('Fitted slope and intercept:', np.round(c, 3))
-plot_fit(x, y, x, A@c, .5*x+3.4)
+plt.close('all')
+fig, ax = plt.subplots()
+ax.scatter(x[1:], y[1:], s=18, label='Observations')
+ax.scatter(x[0], y[0], s=45, color='red', label='Outlier', zorder=3)
+ax.plot(x, A@c, color='#c0502d', label='Fit')
+ax.plot(x, .5*x+3.4, 'k--', label='True relation')
+ax.set(xlabel='x', ylabel='y')
+ax.legend(fontsize=9); fig.tight_layout(); plt.show()
 ```
 :::
 
@@ -505,6 +513,7 @@ for k in range(iterations):
     c = np.linalg.lstsq(w[:,None]*A, w*y, rcond=None)[0]
     residual = A@c-y
     w = 1/np.sqrt(np.maximum(np.abs(residual), .05))
+print('True slope and intercept:', [0.5, 3.4])
 print('Final coefficients:', np.round(c, 3))
 plot_fit(x, y, x, A@c, .5*x+3.4)
 ```
@@ -536,7 +545,7 @@ truth = np.array([1., 2., 3.]); y = A@truth
 c = np.linalg.lstsq(A, y, rcond=None)[0]
 print('Rank:', np.linalg.matrix_rank(A), 'of', A.shape[1])
 print('True coefficients:', truth, '\nMinimum-norm fit:', c)
-print('Recovered sum:', c[1]+c[2])
+print('True sum:', truth[1]+truth[2], '\nRecovered sum:', c[1]+c[2])
 plot_fit(x, y, x, A@c)
 ```
 :::
@@ -670,6 +679,7 @@ v = np.linspace(0, 2, ngrid)
 points = np.array([(a, b) for a in v for b in v])
 errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
+print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Evaluations:', len(points), 'Best:', np.round(best, 4))
 plot_search(points[::max(1,len(points)//300)], best)
 ```
@@ -701,6 +711,7 @@ rng = np.random.default_rng(42)
 points = rng.uniform(0, 2, size=(trials, 2))
 errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
+print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Evaluations:', trials, 'Best:', np.round(best, 4))
 plot_search(points[::max(1,trials//300)], best)
 ```
@@ -738,6 +749,7 @@ for k in range(steps):
         step *= .5
     if objective(candidate) >= objective(p): break
     p = candidate; path.append(p.copy())
+print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Final parameters:', np.round(p, 4), 'Updates:', len(path)-1)
 plot_search(path, p)
 ```
@@ -775,6 +787,7 @@ for k in range(8):
     if not np.all(np.isfinite(candidate)): break
     p = candidate; path.append(p.copy())
     if np.linalg.norm(delta) < 1e-6: break
+print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Final parameters:', np.round(p, 4), 'Updates:', len(path)-1)
 plot_search(path, p)
 ```
@@ -814,6 +827,7 @@ for k in range(steps):
             p = candidate; current = proposed; accepted += 1
     chain.append(p.copy())
 samples = np.array(chain)[burn:]
+print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Acceptance:', round(accepted/steps, 2), 'SD:', samples.std(axis=0).round(4))
 plt.close('all'); fig, ax = plt.subplots(1, 2, figsize=(9, 2.8))
 ax[0].plot(np.array(chain)[:,0], lw=.6); ax[0].axvline(burn, color='red')
