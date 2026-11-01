@@ -2,9 +2,13 @@
 
 Quarto + Quarto Live lectures for GPGN 436/536, Ge Jin, Colorado School of Mines.
 
+**Published site:** https://jinwar.github.io/GeophysicsComputing_Interactive_Slides/
+
+**Regression slides:** https://jinwar.github.io/GeophysicsComputing_Interactive_Slides/regression.html
+
 ## Regression
 
-The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 50 content slides plus a title slide and 15 editable demonstrations.
+The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 51 content slides plus a title slide and 16 editable demonstrations.
 
 The sequence for polynomial regression is explanation, fitting demonstration, coefficient uncertainty, then repeated-fit demonstration. All added measurement noise is Gaussian. Uniform random draws in search methods sample the parameter domain or make acceptance decisions; they are not measurement noise.
 
@@ -23,12 +27,12 @@ quarto add r-wasm/quarto-live@12fb30a5dd5e1bbe6d8ace96795eb1c114c80447 --no-prom
 quarto preview
 ```
 
-The presentation uses `engine: markdown`. Python execution happens in the browser through Pyodide, rather than during Quarto rendering. NumPy and Matplotlib download on first load. Internet access is expected; this is not a self-contained offline presentation.
+The presentation uses `engine: markdown`. Python execution happens in the browser through Pyodide, rather than during Quarto rendering. NumPy, Matplotlib, and SciPy download on first load. Internet access is expected; this is not a self-contained offline presentation.
 
 To test the examples locally:
 
 ```sh
-python -m pip install numpy matplotlib
+python -m pip install numpy matplotlib scipy
 MPLBACKEND=Agg python tests/check_examples.py
 ```
 
