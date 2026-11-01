@@ -6,7 +6,7 @@ engine: markdown
 format:
   live-revealjs:
     theme: simple
-    css: slides.css
+    css: slides-v1.css
     width: 1280
     height: 900
     margin: 0.06
