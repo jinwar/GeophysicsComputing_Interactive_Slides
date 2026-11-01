@@ -17,7 +17,7 @@ format:
     navigation-mode: linear
     controls: true
     history: true
-    footer: "Geophysical Computing · Regression"
+    footer: 'Geophysical Computing · Regression <a class="outline-return" href="#/outline" aria-label="Return to outline"> · Outline ↗</a>'
     code-copy: true
     preview-links: false
 pyodide:
@@ -32,6 +32,32 @@ pyodide:
 
 
 
+
+## Outline {#outline}
+
+::: {.columns .outline-columns}
+::: {.column width="50%"}
+1. [Introduction: regression versus interpolation](#regression-introduction)
+2. [Linear least squares](#linear-least-squares)
+3. [1-D polynomial fitting](#polynomial-fitting)
+4. [Coefficient uncertainty and error sensitivity](#coefficient-uncertainty)
+5. [2-D surface fitting](#surface-fitting)
+6. [Weighted least squares](#weighted-least-squares)
+7. [Robust fitting and automated weighting](#robust-fitting)
+8. [Regularization](#regularization)
+9. [Smooth curve fitting with control points](#smooth-curve-fitting-with-control-points)
+:::
+::: {.column width="50%"}
+10. [Nonlinear regression](#nonlinear-regression)
+11. [Grid search](#grid-search)
+12. [Monte Carlo search](#monte-carlo-search)
+13. [Gradient descent](#gradient-descent)
+14. [Newton’s method](#newtons-method)
+15. [MCMC with multiple chains](#mcmc)
+16. [Comparing nonlinear methods](#comparing-nonlinear-methods)
+17. [Labs: production decline and smooth curve fitting](#labs)
+:::
+:::
 
 ## How to use these slides
 
@@ -145,7 +171,7 @@ Open this presentation before class so that the runtime and packages load. Code 
 :::
 
 
-## The regression problem
+## The regression problem {#regression-introduction}
 
 Given observations $\mathbf d$, choose model parameters $\mathbf m$ to minimize an objective:
 
@@ -193,7 +219,7 @@ plt.xlabel('x'); plt.ylabel('y'); plt.legend(); plt.tight_layout(); plt.show()
 :::
 
 
-## A straight line and many observations
+## A straight line and many observations {#linear-least-squares}
 
 $$y_i=c_1x_i+c_0+\epsilon_i.$$
 
@@ -288,7 +314,7 @@ c = np.linalg.lstsq(A, y, rcond=None)[0]
 We will use `lstsq` from here onward.
 
 
-## 1-D polynomial fitting
+## 1-D polynomial fitting {#polynomial-fitting}
 
 $$y=c_mx^m+c_{m-1}x^{m-1}+\cdots+c_1x+c_0.$$
 
@@ -324,7 +350,7 @@ plot_fit(x, y, xp, np.polyval(c, xp), np.polyval(truth, xp))
 :::
 
 
-## Error sensitivity of the coefficients
+## Error sensitivity of the coefficients {#coefficient-uncertainty}
 
 Keep sample locations and the polynomial degree fixed. Assume full column rank.
 
@@ -386,7 +412,7 @@ fig.tight_layout(); plt.show()
 :::
 
 
-## 2-D polynomial surface fitting
+## 2-D polynomial surface fitting {#surface-fitting}
 
 For a quadratic surface:
 
@@ -443,7 +469,7 @@ plt.show()
 :::
 
 
-## Weighting measurements
+## Weighting measurements {#weighted-least-squares}
 
 Give less influence to less precise observations:
 
@@ -486,7 +512,7 @@ ax.legend(fontsize=9); fig.tight_layout(); plt.show()
 :::
 
 
-## Residual-based weights and robust fitting
+## Residual-based weights and robust fitting {#robust-fitting}
 
 When outlier uncertainty is unknown, iteratively reweighted least squares can reduce its influence.
 
@@ -552,7 +578,7 @@ fig.tight_layout(); plt.show()
 :::
 
 
-## Least-squares regularization
+## Least-squares regularization {#regularization}
 
 $$\underbrace{A}_{m\times n}\underbrace{\mathbf x}_{n\times1}
 =\underbrace{\mathbf b}_{m\times1}.$$
@@ -699,7 +725,7 @@ A nonzero $\mathbf q$ can encode a preferred difference or trend.
 For derivatives, scale differences by grid spacing or its square. Here the examples penalize discrete differences on a fixed grid.
 
 
-## Smooth curve fitting with control points
+## Smooth curve fitting with control points {#smooth-curve-fitting-with-control-points}
 
 Use what we learned about interpolation to fit a smooth curve by **reversing the problem**.
 
@@ -771,7 +797,7 @@ plot_fit(x, y, x, A@c, np.sin(x))
 :::
 
 
-## Nonlinear regression
+## Nonlinear regression {#nonlinear-regression}
 
 When predictions depend nonlinearly on unknown parameters, the objective may have several local minima.
 
@@ -784,7 +810,7 @@ We compare methods using the same synthetic data and objective.
 **Computational cost:** count objective-function evaluations, including those used for finite-difference derivatives and step-size checks. Counts reset on each run and exclude plotting.
 
 
-## Grid search
+## Grid search {#grid-search}
 
 Evaluate a regular grid of candidate models and retain the best tested point.
 
@@ -818,7 +844,7 @@ plot_search(points, best, connect=False)
 :::
 
 
-## Monte Carlo search
+## Monte Carlo search {#monte-carlo-search}
 
 Sample independent candidate models within chosen bounds and keep the best result so far.
 
@@ -852,7 +878,7 @@ plot_search(points, best, connect=False)
 :::
 
 
-## Gradient descent
+## Gradient descent {#gradient-descent}
 
 $$\mathbf m_{k+1}=\mathbf m_k-\eta\nabla E(\mathbf m_k).$$
 
@@ -892,7 +918,7 @@ plot_search(path, p)
 :::
 
 
-## Newton’s method
+## Newton’s method {#newtons-method}
 
 Use a quadratic approximation around the current model:
 
@@ -932,7 +958,7 @@ plot_search(path, p)
 :::
 
 
-## MCMC samples a probability distribution
+## MCMC samples a probability distribution {#mcmc}
 
 For Gaussian data errors with known $\sigma$ and a uniform prior within bounds:
 
@@ -1001,7 +1027,7 @@ This replaces the original improvement-only random-search example, which was lab
 :::
 
 
-## Choosing a nonlinear method
+## Choosing a nonlinear method {#comparing-nonlinear-methods}
 
 | Method | Useful property | Main limitation |
 |---|---|---|
@@ -1014,7 +1040,7 @@ This replaces the original improvement-only random-search example, which was lab
 Optimization finds a good model. Sampling describes a distribution under stated assumptions.
 
 
-## Lab 1: production decline by linearization
+## Lab 1: production decline by linearization {#labs}
 
 $$P(t)=A\exp(-\alpha t),\qquad \log P=\log A-\alpha t.$$
 
