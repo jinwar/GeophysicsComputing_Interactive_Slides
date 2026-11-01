@@ -29,6 +29,11 @@ pyodide:
     min-lines: 3
 ---
 
+
+
+
+## How to use these slides
+
 ```{pyodide}
 #| include: false
 """Shared plotting and numerical helpers for Module 09. All data are synthetic."""
@@ -105,9 +110,6 @@ def interpolation_matrix(x, knots):
     return np.column_stack([np.interp(x, knots, e) for e in eye])
 
 ```
-
-
-## How to use these slides
 
 Wait for Python to load, then edit a code block and select **Run Code**.
 
