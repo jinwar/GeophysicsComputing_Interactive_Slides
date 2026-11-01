@@ -66,8 +66,10 @@ def plot_search(points, best, history=None, connect=True, starts=None):
         colors = ['#ffad33', '#ed65cf', '#65d9ff', '#a5ed58']
         for i, (chain, start) in enumerate(zip(points, starts)):
             color = colors[i % len(colors)]
-            axes[0].plot(chain[:,0], chain[:,1], '.', color=color, ms=2,
+            path = np.vstack([start, chain])
+            axes[0].plot(path[:,0], path[:,1], '-', color=color, lw=.8,
                          label=f'Chain {i+1}')
+            axes[0].plot(*path[-1], 'o', color=color, ms=4)
             axes[0].plot(*start, marker='s', color=color, ms=6, markeredgecolor='black')
         axes[0].legend(fontsize=7, loc='lower right')
     axes[0].plot(*truth, 'wx', ms=9)
