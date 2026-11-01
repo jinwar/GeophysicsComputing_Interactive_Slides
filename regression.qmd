@@ -298,6 +298,7 @@ x, y, truth = poly_data(sigma=sigma)
 A = np.vander(x, degree+1)
 c = np.linalg.lstsq(A, y, rcond=None)[0]
 xp = np.linspace(-2, 2, 200)
+print('True coefficients:  ', truth)
 print('Fitted coefficients:', np.round(c, 3))
 plot_fit(x, y, xp, np.polyval(c, xp), np.polyval(truth, xp))
 ```
