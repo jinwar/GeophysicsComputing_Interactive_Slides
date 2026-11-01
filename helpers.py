@@ -46,7 +46,7 @@ def hessian(p, h=1e-4):
     eye = np.eye(len(p))*h
     return np.column_stack([(gradient(p+d)-gradient(p-d))/(2*h) for d in eye])
 
-def plot_search(points, best, history=None):
+def plot_search(points, best, history=None, connect=True):
     plt.close('all')
     x, y, truth, _ = nonlinear_data()
     a = np.linspace(0, 2, 85)
@@ -55,7 +55,8 @@ def plot_search(points, best, history=None):
     fig, axes = plt.subplots(1, 2, figsize=(9, 3))
     axes[0].contourf(aa, bb, np.log10(z+1e-9), 24, cmap='viridis')
     points = np.asarray(points)
-    axes[0].plot(points[:,0], points[:,1], '.-', color='#f4ab55', ms=2, lw=.6)
+    axes[0].plot(points[:,0], points[:,1], marker='.', linestyle='-' if connect else 'None',
+                 color='#f4ab55', ms=2, lw=.6)
     axes[0].plot(*truth, 'wx', ms=9)
     axes[0].plot(*best, 'ro', ms=5)
     axes[0].set(xlabel='alpha', ylabel='beta', title='log10 SSE and search points', xlim=(0,2), ylim=(0,2))
