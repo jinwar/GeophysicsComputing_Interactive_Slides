@@ -533,34 +533,83 @@ fig.tight_layout(); plt.show()
 :::
 
 
-## More observations do not guarantee identifiability
+## Least-squares regularization
 
-A matrix with more rows than columns can still have dependent columns.
+$$\underbrace{A}_{m\times n}\underbrace{\mathbf x}_{n\times1}
+=\underbrace{\mathbf b}_{m\times1}.$$
 
-If two columns are identical, the data determine only the **sum** of their coefficients.
+More equations than unknowns ($m>n$) does **not** guarantee a unique least-squares solution.
 
-$$A\mathbf c=A(\mathbf c+\mathbf v)\quad\text{when }A\mathbf v=0.$$
+The columns of $A$ must be independent for $A^TA$ to be invertible.
 
-An overdetermined system can therefore be rank deficient. Prior constraints can select a solution, but cannot create missing information in the measurements.
-
-
-## Python: duplicate columns
+$$\mathbf x=(A^TA)^{-1}A^T\mathbf b.$$
 
 ::: {.prompt}
-Check which combination is recovered even when individual coefficients are not.
+What happens to this formula when two columns of $A$ are identical?
+:::
+
+
+## Example: a rank-deficient matrix
+
+::: {.columns}
+::: {.column width="48%"}
+$$A=\begin{bmatrix}
+1&2&3&1&1\\
+3&2&1&0&0\\
+1&4&6&5&5\\
+3&2&6&0&0\\
+2&65&2&2&2\\
+3&2&6&3&3\\
+6&3&6&2&2
+\end{bmatrix}.$$
+:::
+::: {.column width="52%"}
+$$A^TA=\begin{bmatrix}
+69&172&88&31&31\\
+172&4266&204&164&164\\
+88&204&158&67&67\\
+31&164&67&43&43\\
+31&164&67&43&43
+\end{bmatrix}.$$
+:::
+:::
+
+Use $\mathbf x_{\rm true}=[1,2,3,4,5]^T$ and noise-free data $\mathbf b=A\mathbf x_{\rm true}$.
+
+The last two columns are identical. The data determine $x_4+x_5$, but cannot distinguish the two coefficients.
+
+
+## Python: inverting the singular normal matrix
+
+::: {.prompt}
+Even with noise-free data, does the direct inverse recover the true coefficients?
 :::
 
 ::: {.live-demo}
 ```{pyodide}
-x = np.linspace(0, 1, 20)
-A = np.column_stack([np.ones(len(x)), x, x])
-truth = np.array([1., 2., 3.]); y = A@truth
-c = np.linalg.lstsq(A, y, rcond=None)[0]
-print('Rank:', np.linalg.matrix_rank(A), 'of', A.shape[1])
-print('True coefficients:', truth, '\nMinimum-norm fit:', c)
-print('True sum:', truth[1]+truth[2], '\nRecovered sum:', c[1]+c[2])
-plot_fit(x, y, x, A@c)
+#| max-lines: 7
+A = np.array([[1,2,3,1,1], [3,2,1,0,0], [1,4,6,5,5],
+              [3,2,6,0,0], [2,65,2,2,2], [3,2,6,3,3], [6,3,6,2,2]])
+x_true = np.array([1,2,3,4,5])
+b = A.dot(x_true)
+ATA = A.T.dot(A)
+print('True coefficients:', x_true)
+print('Rank of A:', np.linalg.matrix_rank(A), 'of', A.shape[1])
+try:
+    ATA_inv = np.linalg.inv(ATA)
+    print('Computed inverse of A.T A:')
+    print(np.array2string(ATA_inv, precision=2, max_line_width=100))
+    x_fit = ATA_inv.dot(A.T).dot(b)
+    print('Inverted coefficients:', np.round(x_fit, 3))
+except np.linalg.LinAlgError:
+    print('Direct inversion failed: A.T A is singular.')
 ```
+:::
+
+$A^TA$ is singular. Floating-point inversion may report an error or return huge entries and unreliable coefficients.
+
+::: {.notes}
+This reproduces the matrix, true coefficients, noise-free data, and explicit inverse from original PowerPoint slides 27–29. The exact numerical failure depends on the numerical library. The original screenshot showed entries near 8.84e14 and incorrect recovered coefficients. Do not interpret a returned array as a valid inverse of this singular matrix.
 :::
 
 
