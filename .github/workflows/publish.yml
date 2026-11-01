@@ -1,0 +1,53 @@
+name: Build and publish lectures
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install numerical test dependencies
+        run: python -m pip install numpy matplotlib
+      - name: Execute independent examples and mathematical checks
+        env:
+          MPLBACKEND: Agg
+        run: python tests/check_examples.py
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: '1.10.20'
+      - name: Install pinned Quarto Live extension
+        run: |
+          curl -fL https://api.github.com/repos/r-wasm/quarto-live/tarball/12fb30a5dd5e1bbe6d8ace96795eb1c114c80447 -o /tmp/live.tar.gz
+          mkdir -p /tmp/live _extensions/r-wasm
+          tar -xzf /tmp/live.tar.gz -C /tmp/live --strip-components=1
+          cp -R /tmp/live/_extensions/live _extensions/r-wasm/live
+      - name: Render course website and slides
+        run: quarto render
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
