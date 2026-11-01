@@ -8,7 +8,7 @@ Quarto + Quarto Live lectures for GPGN 436/536, Ge Jin, Colorado School of Mines
 
 ## Regression
 
-The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 49 content slides plus a title slide and 16 editable demonstrations.
+The initial module combines the 59-slide `09 Regression.pptx` teaching sequence with runnable Python examples. It covers linear and polynomial least squares, coefficient uncertainty, 2-D fitting, weighting, robust fitting, regularization, interpolation-based smoothing, nonlinear optimization, and posterior sampling. There are 50 content slides plus a title slide and 16 editable demonstrations.
 
 The sequence for polynomial regression is explanation, fitting demonstration, coefficient uncertainty, then repeated-fit demonstration. All added measurement noise is Gaussian. Uniform random draws in search methods sample the parameter domain or make acceptance decisions; they are not measurement noise.
 
@@ -39,6 +39,8 @@ MPLBACKEND=Agg python tests/check_examples.py
 ## Teaching and editing
 
 Edit `regression.qmd` for slide text, equations, and live code. Each demonstration works after shared setup has loaded without requiring previous demonstrations to run. The hidden setup block contains a copy of `helpers.py`; keep them synchronized (the test checks this). Helpers contain plot formatting and numerical gradient/Hessian calculations. Core fitting and search loops remain visible in the demonstrations.
+
+The outline slide links to all 17 subsections. Select **Outline** in the footer of any non-title slide to return to it.
 
 Students can change code and select Run Code, or restore original code with Start Over. Their edits affect their browser session only. Click outside an editor before using keyboard slide navigation. Long editors scroll. Reloading resets the runtime. GitHub/Canvas submissions remain separate from browser experimentation.
 
