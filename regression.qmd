@@ -615,29 +615,52 @@ This reproduces the matrix, true coefficients, noise-free data, and explicit inv
 
 ## Tikhonov regularization
 
-Add a penalty on model magnitude:
+For the same matrix, penalize the squared $L_2$ norm of the model:
 
-$$E=\|A\mathbf c-\mathbf y\|_2^2+\lambda\|\mathbf c\|_2^2.$$
+$$E=\|A\mathbf x-\mathbf b\|_2^2+\alpha\|\mathbf x\|_2^2,$$
+$$\boxed{\mathbf x=(A^TA+\alpha I)^{-1}A^T\mathbf b}.$$
 
-$$\boxed{(A^TA+\lambda I)\hat{\mathbf c}=A^T\mathbf y}.$$
+::: {.live-demo}
+```{pyodide}
+#| max-lines: 7
+A = np.array([[1,2,3,1,1], [3,2,1,0,0], [1,4,6,5,5],
+              [3,2,6,0,0], [2,65,2,2,2], [3,2,6,3,3], [6,3,6,2,2]])
+x_true = np.array([1,2,3,4,5])
+b = A.dot(x_true)
+alpha = 0.01
+x_regu = np.linalg.inv(A.T.dot(A) + alpha*np.identity(A.shape[1])).dot(A.T.dot(b))
+print('True answer:    ', x_true)
+print('Inverted answer:', np.round(x_regu, 6))
+```
+:::
 
-Larger $\lambda$ favors smaller coefficients and typically sacrifices data fit.
+The last two coefficients become nearly equal: the penalty favors sharing their sum equally.
 
-We consistently use $\lambda$ as the weight in the objective.
+::: {.notes}
+Source: original PowerPoint slide 30. The objective uses alpha as the penalty weight to agree with the original code and normal equations. This is the same role as lambda in later slides. The original objective's alpha squared and unsquared norms did not match its code.
+:::
 
 
-## Prior knowledge as extra equations
+## Adding knowledge as regularization
 
-For a preferred relation $L\mathbf c\approx\mathbf q$:
+Express prior knowledge as
 
-$$E=\|A\mathbf c-\mathbf y\|_2^2+\lambda\|L\mathbf c-\mathbf q\|_2^2.$$
+$$\Gamma\mathbf x\approx\boldsymbol\gamma.$$
 
-Solve an augmented least-squares problem:
+Combine the observations and the constraint:
 
-$$A_* =\begin{bmatrix}A\\\sqrt{\lambda}L\end{bmatrix},\qquad
-\mathbf y_* =\begin{bmatrix}\mathbf y\\\sqrt{\lambda}\mathbf q\end{bmatrix}.$$
+$$A^*=\begin{bmatrix}A\\\sqrt{\alpha}\,\Gamma\end{bmatrix},\qquad
+\mathbf b^*=\begin{bmatrix}\mathbf b\\\sqrt{\alpha}\,\boldsymbol\gamma\end{bmatrix}.$$
 
-The square root ensures the augmented objective has weight $\lambda$.
+$$\mathbf x=({A^*}^TA^*)^{-1}{A^*}^T\mathbf b^*.$$
+
+This minimizes $\|A\mathbf x-\mathbf b\|_2^2+\alpha\|\Gamma\mathbf x-\boldsymbol\gamma\|_2^2$.
+
+For the preceding example, $\Gamma=I$ and $\boldsymbol\gamma=\mathbf0$ give Tikhonov regularization.
+
+::: {.notes}
+Source: original PowerPoint slide 31. The augmented system must have full column rank for the inverse formula. Scaling rows by sqrt(alpha) keeps alpha as the objective weight, as on the preceding slide. Scaling rows by alpha, as in the original slide, instead gives objective weight alpha squared.
+:::
 
 
 ## Magnitude, slope, and curvature constraints
