@@ -1,0 +1,9 @@
+project:
+  type: default
+  output-dir: _site
+  render:
+    - index.qmd
+    - regression.qmd
+resources:
+  - helpers.py
+  - regression.qmd
