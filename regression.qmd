@@ -938,7 +938,7 @@ Accepting only improvements is randomized optimization. Posterior sampling also 
 ## Python: Metropolis sampling
 
 ::: {.prompt}
-Change proposal_sd. Observe acceptance and the sampled parameter cloud.
+Fit the same sinusoidal data. Change proposal_sd or start; compare the sampled models and fitted curve.
 :::
 
 ::: {.live-demo}
@@ -946,31 +946,32 @@ Change proposal_sd. Observe acceptance and the sampled parameter cloud.
 objective.evaluations = 0
 proposal_sd, steps, burn = 0.01, 3000, 500
 rng = np.random.default_rng(42)
-p = np.array([1.21, 1.54]); sigma = .2
-chain = []; accepted = 0; current = objective(p)
+start = [1.15, 1.0]  # Same starting model as Newton
+p = np.array(start, dtype=float); sigma = nonlinear_data()[3]
+chain = []; errors = []; accepted = 0; current = objective(p)
 for k in range(steps):
     candidate = p+rng.normal(0, proposal_sd, 2)
     if np.all((candidate >= 0) & (candidate <= 2)):
         proposed = objective(candidate)
         if np.log(rng.random()) < -(proposed-current)/(2*sigma**2):
             p = candidate; current = proposed; accepted += 1
-    chain.append(p.copy())
+    chain.append(p.copy()); errors.append(current)
 samples = np.array(chain)[burn:]
+best = samples[np.argmin(errors[burn:])]
 print('True parameters (alpha, beta):', nonlinear_data()[2])
+print('Fitted parameters (best retained sample):', np.round(best, 4))
 print('Acceptance:', round(accepted/steps, 2), 'SD:', samples.std(axis=0).round(4))
 print('Function evaluations:', objective.evaluations)
-plt.close('all'); fig, ax = plt.subplots(1, 2, figsize=(9, 2.8))
-ax[0].plot(np.array(chain)[:,0], lw=.6); ax[0].axvline(burn, color='red')
-ax[0].set(xlabel='Iteration', ylabel='alpha')
-ax[1].scatter(samples[:,0], samples[:,1], s=2, alpha=.2)
-ax[1].set(xlabel='alpha', ylabel='beta'); fig.tight_layout(); plt.show()
+plot_search(samples, best, connect=False)
 ```
 :::
 
 
 ## Interpreting an MCMC demonstration
 
-This short chain starts near the known synthetic solution and illustrates sampling within a basin.
+This example uses the **same sinusoidal model, observations, SSE objective, and parameter bounds** as the other nonlinear fits. It starts at the same model as the Newton example.
+
+Dots show samples after burn-in. The fitted curve uses the retained sample with the smallest SSE; MCMC itself samples the posterior rather than accepting only improvements.
 
 Its standard deviations **do not establish global uncertainty** in this multimodal problem.
 
