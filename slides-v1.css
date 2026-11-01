@@ -20,3 +20,10 @@
 .reveal #python-repeated-fits-and-coefficient-spread .cm-editor { max-height: 230px; }
 .reveal #python-repeated-fits-and-coefficient-spread .live-demo canvas,
 .reveal #python-repeated-fits-and-coefficient-spread .live-demo img { max-height: 210px; }
+
+/* Persistent outline navigation; omit the link on the title slide. */
+.reveal .footer .outline-return { margin-left: .45em; font-weight: 600; }
+.reveal:has(#title-slide.present) .footer .outline-return { display: none; }
+.reveal .outline-columns { font-size: .86em; gap: 1.4em; }
+.reveal .outline-columns li { margin-bottom: .55em; }
+.reveal .outline-columns a { text-decoration: none; }
