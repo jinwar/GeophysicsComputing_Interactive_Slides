@@ -355,9 +355,12 @@ print('Coefficient  observed SD  predicted SD')
 for j, (s, t) in enumerate(zip(observed, predicted)):
     print(f'c{4-j}:          {s:.3f}        {t:.3f}')
 plt.close('all')
-fig, axes = plt.subplots(1, 5, figsize=(10, 2.5))
+xlim = (min(C.min(), truth.min()) - 0.2, max(C.max(), truth.max()) + 0.2)
+bins = np.linspace(*xlim, 41)
+fig, axes = plt.subplots(1, 5, figsize=(10, 2.5), sharex=True)
 for j, ax in enumerate(axes):
-    ax.hist(C[j], bins=30, color='#087e8b'); ax.axvline(truth[j], color='#c0502d')
+    ax.hist(C[j], bins=bins, color='#087e8b'); ax.axvline(truth[j], color='#c0502d')
+    ax.set_xlim(xlim)
     ax.set_title(f'c{4-j}'); ax.set_yticks([])
 fig.tight_layout(); plt.show()
 ```
