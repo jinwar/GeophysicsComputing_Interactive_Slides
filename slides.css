@@ -16,3 +16,7 @@
 .reveal .live-demo img, .reveal .live-demo canvas { max-height: 285px; width: auto; object-fit: contain; margin: 2px auto; }
 .reveal .live-demo p { margin: .2em 0; }
 .reveal pre { font-size: .6em; }
+/* Leave room for both the numerical table and coefficient histograms. */
+.reveal #python-repeated-fits-and-coefficient-spread .cm-editor { max-height: 230px; }
+.reveal #python-repeated-fits-and-coefficient-spread .live-demo canvas,
+.reveal #python-repeated-fits-and-coefficient-spread .live-demo img { max-height: 210px; }
