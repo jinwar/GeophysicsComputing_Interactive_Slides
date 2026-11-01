@@ -67,12 +67,12 @@ def plot_search(points, best, history=None):
     fig.tight_layout()
     plt.show()
 
-def interpolation_matrix(x, xc):
+def interpolation_matrix(x, xc, kind="cubic"):
     from scipy.interpolate import interp1d
     A = np.zeros((len(x), len(xc)))
     for i in range(len(xc)):
         x0 = np.zeros(len(xc))
         x0[i] = 1
-        f = interp1d(xc, x0, kind='cubic')
+        f = interp1d(xc, x0, kind=kind)
         A[:, i] = f(x)
     return A
