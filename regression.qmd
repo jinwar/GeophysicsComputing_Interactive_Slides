@@ -406,12 +406,16 @@ B = np.stack([np.ones_like(X), X, X*X, X*Y, Y, Y*Y], axis=-1)
 Z_true, Z_fit = B@truth, B@c
 vmin, vmax = min(Z_true.min(), Z_fit.min()), max(Z_true.max(), Z_fit.max())
 plt.close('all')
-fig, axes = plt.subplots(1, 3, figsize=(11, 3), layout='constrained')
+fig = plt.figure(figsize=(11, 3.2), layout='constrained')
+axes = [fig.add_subplot(1, 3, i+1, projection='3d') for i in range(2)]
+axes.append(fig.add_subplot(1, 3, 3))
 for ax, Z, title in zip(axes[:2], [Z_true, Z_fit], ['True surface', 'Fitted surface']):
-    im = ax.pcolormesh(X, Y, Z, shading='auto', cmap='viridis', vmin=vmin, vmax=vmax)
-    ax.scatter(x, y, s=4, color='white', alpha=.5)
-    ax.set(xlabel='x', ylabel='y', title=title, aspect='equal')
-fig.colorbar(im, ax=axes[:2], label='z', shrink=.85)
+    ax.plot_surface(X, Y, Z, cmap='viridis', vmin=vmin, vmax=vmax, alpha=.85)
+    ax.scatter(x, y, z, s=5, color='black', alpha=.6)
+    ax.set(xlabel='x', ylabel='y', zlabel='z', title=title,
+           xlim=(x.min(), x.max()), ylim=(y.min(), y.max()), zlim=(vmin, vmax))
+    ax.view_init(elev=25, azim=-60)
+    ax.set_box_aspect((1, 1, .8))
 axes[2].scatter(z, A@c, s=12)
 axes[2].plot([z.min(), z.max()], [z.min(), z.max()], 'k--')
 axes[2].set(xlabel='Observed z', ylabel='Predicted z', title='Fit at sample locations')
