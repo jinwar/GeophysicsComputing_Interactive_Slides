@@ -430,7 +430,7 @@ The positive floor $\epsilon$ prevents division by zero. These weights differ fr
 
 ## Why squared residuals emphasize outliers
 
-| Residual | Absolute loss $|r|$ | Squared loss $r^2$ |
+| Residual | Absolute loss $\lvert r\rvert$ | Squared loss $r^2$ |
 |---:|---:|---:|
 | 1 | 1 | 1 |
 | 2 | 2 | 4 |
