@@ -1073,26 +1073,3 @@ Fit the same $P(t)=A\exp(-\alpha t)$ directly in production units.
 4. Explain why the two objectives can produce different estimates.
 
 Use physically meaningful bounds and account for the different scales of $A$ and $\alpha$.
-
-
-## Questions to take away
-
-- When is a curved model still linear in its parameters?
-- What controls the standard deviation of a fitted coefficient?
-- How do measurement weights differ from robust residual weights?
-- What information does regularization add?
-- Why can a fast optimizer still return an unsuitable model?
-
-[Course notebooks](https://github.com/jinwar/GeophysicsComputing_GPGN436536)
-
-
-## Sources and further reading
-
-Course material adapted from Ge Jin’s **09 Regression** slide deck and the GPGN 436/536 regression notebook, co-developed with Jeff Shragge.
-
-- Menke, *Geophysical Data Analysis: Discrete Inverse Theory* (2018).
-- Kreyszig, *Advanced Engineering Mathematics*, 10th edition.
-- [NumPy least-squares solver](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html).
-- [Quarto Live documentation](https://r-wasm.github.io/quarto-live/).
-
-All interactive datasets here are synthetic. Measurement noise is Gaussian.
