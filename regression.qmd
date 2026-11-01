@@ -85,7 +85,7 @@ def hessian(p, h=1e-4):
     eye = np.eye(len(p))*h
     return np.column_stack([(gradient(p+d)-gradient(p-d))/(2*h) for d in eye])
 
-def plot_search(points, best, history=None):
+def plot_search(points, best, history=None, connect=True):
     plt.close('all')
     x, y, truth, _ = nonlinear_data()
     a = np.linspace(0, 2, 85)
@@ -94,7 +94,8 @@ def plot_search(points, best, history=None):
     fig, axes = plt.subplots(1, 2, figsize=(9, 3))
     axes[0].contourf(aa, bb, np.log10(z+1e-9), 24, cmap='viridis')
     points = np.asarray(points)
-    axes[0].plot(points[:,0], points[:,1], '.-', color='#f4ab55', ms=2, lw=.6)
+    axes[0].plot(points[:,0], points[:,1], marker='.', linestyle='-' if connect else 'None',
+                 color='#f4ab55', ms=2, lw=.6)
     axes[0].plot(*truth, 'wx', ms=9)
     axes[0].plot(*best, 'ro', ms=5)
     axes[0].set(xlabel='alpha', ylabel='beta', title='log10 SSE and search points', xlim=(0,2), ylim=(0,2))
@@ -632,6 +633,32 @@ Larger $\lambda$ favors smaller coefficients and typically sacrifices data fit.
 We consistently use $\lambda$ as the weight in the objective.
 
 
+## Python: stabilizing the matrix inverse
+
+::: {.prompt}
+Use the same matrix as before. Try lam = 0.01, 1, and 100.
+:::
+
+::: {.live-demo}
+```{pyodide}
+lam = 0.01
+A = np.array([[1,2,3,1,1], [3,2,1,0,0], [1,4,6,5,5],
+              [3,2,6,0,0], [2,65,2,2,2], [3,2,6,3,3], [6,3,6,2,2]])
+x_true = np.array([1,2,3,4,5])
+b = A.dot(x_true)
+ATA = A.T.dot(A)
+regularized = ATA + lam*np.eye(A.shape[1])
+x_fit = np.linalg.inv(regularized).dot(A.T).dot(b)
+print('True coefficients:       ', x_true)
+print('Regularized coefficients:', np.round(x_fit, 6))
+print('Condition number before:', f'{np.linalg.cond(ATA):.2e}')
+print('Condition number after: ', f'{np.linalg.cond(regularized):.2e}')
+```
+:::
+
+Adding $\lambda I$ makes the matrix invertible for $\lambda>0$. The last two coefficients approach equal values because the data cannot distinguish them.
+
+
 ## Prior knowledge as extra equations
 
 For a preferred relation $L\mathbf c\approx\mathbf q$:
@@ -769,7 +796,7 @@ errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
 print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Evaluations:', len(points), 'Best:', np.round(best, 4))
-plot_search(points[::max(1,len(points)//300)], best)
+plot_search(points, best, connect=False)
 ```
 :::
 
@@ -801,7 +828,7 @@ errors = np.array([objective(p) for p in points])
 best = points[np.argmin(errors)]
 print('True parameters (alpha, beta):', nonlinear_data()[2])
 print('Evaluations:', trials, 'Best:', np.round(best, 4))
-plot_search(points[::max(1,trials//300)], best)
+plot_search(points, best, connect=False)
 ```
 :::
 
