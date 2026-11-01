@@ -1,0 +1,22 @@
+---
+title: "Geophysical Computing"
+subtitle: "GPGN 436/536 · Ge Jin · Colorado School of Mines"
+format:
+  html:
+    theme: cosmo
+    toc: false
+---
+
+## Interactive lectures
+
+[**Module 09: Regression — open the presentation**](regression.html)
+
+Explore least squares, coefficient uncertainty, weighting, regularization, and nonlinear regression with editable Python examples.
+
+- Open the slides in a current desktop browser. Allow Python and its packages to finish loading.
+- Use the arrow controls to move between slides and **Esc** for the slide overview.
+- Click inside a code block to edit, then select **Run Code**. Select **Start Over** to restore the supplied code.
+- Each browser has an independent Python session. Your changes do not change the course materials.
+- The examples use synthetic data. No account or Python installation is required.
+
+[Course notebooks](https://github.com/jinwar/GeophysicsComputing_GPGN436536) · [Presentation source](https://github.com/jinwar/GeophysicsComputing_Interactive_Slides)
