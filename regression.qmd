@@ -214,16 +214,16 @@ For full column rank $A$:
 
 $$\hat{\mathbf c}=(A^TA)^{-1}A^T\mathbf y.$$
 
-In Python, solve the least-squares problem directly:
+Translate the formula directly into NumPy:
 
 ```python
-c = np.linalg.lstsq(A, y, rcond=None)[0]
+c = np.linalg.inv(A.T.dot(A)).dot(A.T).dot(y)
 ```
 
-This avoids explicitly forming and inverting $A^TA$.
+`A.T` is the transpose, `.dot()` multiplies matrices, and `np.linalg.inv()` computes the inverse.
 
 ::: {.notes}
-The formula explains the mapping from data to parameters. Numerical solvers based on QR or SVD avoid the loss of conditioning from forming the normal matrix.
+Walk through the code in the same order as the formula. Full column rank ensures that A transpose A is invertible. Introduce the practical solver only after the straight-line demonstration.
 :::
 
 
@@ -240,11 +240,32 @@ rng = np.random.default_rng(42)
 x = np.linspace(-10, 10, n)
 y = 0.5*x + 3.4 + rng.normal(0, sigma, n)
 A = np.column_stack([x, np.ones(n)])
-c = np.linalg.lstsq(A, y, rcond=None)[0]
+c = np.linalg.inv(A.T.dot(A)).dot(A.T).dot(y)
 print('Slope and intercept:', np.round(c, 3))
 plot_fit(x, y, x, A@c, 0.5*x+3.4)
 ```
 :::
+
+
+## From the formula to `np.linalg.lstsq`
+
+The explicit inverse shows how the least-squares formula becomes code:
+
+```python
+c = np.linalg.inv(A.T.dot(A)).dot(A.T).dot(y)
+```
+
+For subsequent examples, use NumPy's least-squares solver:
+
+```python
+c = np.linalg.lstsq(A, y, rcond=None)[0]
+```
+
+- Both compute the same least-squares fit for full-rank problems, up to numerical precision.
+- `lstsq` avoids forming and inverting $A^TA$, improving numerical stability.
+- `[0]` selects the fitted coefficients from the returned results.
+
+We will use `lstsq` from here onward.
 
 
 ## 1-D polynomial fitting
