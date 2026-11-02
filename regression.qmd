@@ -592,7 +592,7 @@ The columns of $A$ must be independent for $A^TA$ to be invertible.
 $$\mathbf x=(A^TA)^{-1}A^T\mathbf b.$$
 
 ::: {.prompt}
-What happens to this formula when two columns of $A$ are identical?
+What happens to this formula when the last column of $A$ is all zero?
 :::
 
 
@@ -601,29 +601,29 @@ What happens to this formula when two columns of $A$ are identical?
 ::: {.columns}
 ::: {.column width="48%"}
 $$A=\begin{bmatrix}
-1&2&3&1&1\\
+1&2&3&1&0\\
 3&2&1&0&0\\
-1&4&6&5&5\\
+1&4&6&5&0\\
 3&2&6&0&0\\
-2&65&2&2&2\\
-3&2&6&3&3\\
-6&3&6&2&2
+2&65&2&2&0\\
+3&2&6&3&0\\
+6&3&6&2&0
 \end{bmatrix}.$$
 :::
 ::: {.column width="52%"}
 $$A^TA=\begin{bmatrix}
-69&172&88&31&31\\
-172&4266&204&164&164\\
-88&204&158&67&67\\
-31&164&67&43&43\\
-31&164&67&43&43
+69&172&88&31&0\\
+172&4266&204&164&0\\
+88&204&158&67&0\\
+31&164&67&43&0\\
+0&0&0&0&0
 \end{bmatrix}.$$
 :::
 :::
 
 Use $\mathbf x_{\rm true}=[1,2,3,4,5]^T$ and noise-free data $\mathbf b=A\mathbf x_{\rm true}$.
 
-The last two columns are identical. The data determine $x_4+x_5$, but cannot distinguish the two coefficients.
+The last column is all zero. The data constrain the first four coefficients, but contain no information about $x_5$: any value of $x_5$ gives the same predictions.
 
 
 ## Python: inverting the singular normal matrix
@@ -635,8 +635,8 @@ Even with noise-free data, does the direct inverse recover the true coefficients
 ::: {.live-demo}
 ```{pyodide}
 #| max-lines: 7
-A = np.array([[1,2,3,1,1], [3,2,1,0,0], [1,4,6,5,5],
-              [3,2,6,0,0], [2,65,2,2,2], [3,2,6,3,3], [6,3,6,2,2]])
+A = np.array([[1,2,3,1,0], [3,2,1,0,0], [1,4,6,5,0],
+              [3,2,6,0,0], [2,65,2,2,0], [3,2,6,3,0], [6,3,6,2,0]])
 x_true = np.array([1,2,3,4,5])
 b = A.dot(x_true)
 ATA = A.T.dot(A)
@@ -653,10 +653,10 @@ except np.linalg.LinAlgError:
 ```
 :::
 
-$A^TA$ is singular. Floating-point inversion may report an error or return huge entries and unreliable coefficients.
+$A^TA$ has a zero last row and column, so it is singular and direct inversion fails.
 
 ::: {.notes}
-This reproduces the matrix, true coefficients, noise-free data, and explicit inverse from original PowerPoint slides 27–29. The exact numerical failure depends on the numerical library. The original screenshot showed entries near 8.84e14 and incorrect recovered coefficients. Do not interpret a returned array as a valid inverse of this singular matrix.
+This adapted example uses a zero last column to make the unconstrained coefficient explicit. The rank is four, and changing the fifth true coefficient does not change the noise-free data.
 :::
 
 
@@ -682,8 +682,8 @@ Use the same matrix as before. Try lam = 0.01, 1, and 100.
 ::: {.live-demo}
 ```{pyodide}
 lam = 0.01
-A = np.array([[1,2,3,1,1], [3,2,1,0,0], [1,4,6,5,5],
-              [3,2,6,0,0], [2,65,2,2,2], [3,2,6,3,3], [6,3,6,2,2]])
+A = np.array([[1,2,3,1,0], [3,2,1,0,0], [1,4,6,5,0],
+              [3,2,6,0,0], [2,65,2,2,0], [3,2,6,3,0], [6,3,6,2,0]])
 x_true = np.array([1,2,3,4,5])
 b = A.dot(x_true)
 ATA = A.T.dot(A)
@@ -697,7 +697,7 @@ print('Condition number after: ', f'{np.linalg.cond(regularized):.2e}')
 ```
 :::
 
-Adding $\lambda I$ makes the matrix invertible for $\lambda>0$. The last two coefficients approach equal values because the data cannot distinguish them.
+Adding $\lambda I$ makes the matrix invertible for $\lambda>0$. The first four coefficients are close to their true values for small $\lambda$, with some shrinkage bias. The fifth coefficient is zero: the magnitude penalty selects it, rather than the data recovering its true value of 5.
 
 
 ## Prior knowledge as extra equations
