@@ -706,17 +706,10 @@ print('True x:         ', x_true)
 print('Least squares:  ', np.round(x_ls, 3))
 print('Regularized x:  ', np.round(x_ridge, 3))
 
-indices = np.arange(1, 6)
-plt.figure(figsize=(7, 3.5))
-plt.plot(indices, x_true, 'kx', markersize=9, label='True x')
-plt.plot(indices-0.06, x_ls, 'o', label='Least squares')
-plt.plot(indices+0.06, x_ridge, 'o', label='Regularized')
-plt.xticks(indices)
-plt.xlabel('Unknown index')
-plt.ylabel('Value')
-plt.legend()
-plt.tight_layout()
-plt.show()
+# Data-fitting error relative to the noisy observations (sum of squares).
+for name, x_fit in [('Least squares', x_ls), ('Regularized', x_ridge)]:
+    residual = A_long @ x_fit - b_noisy
+    print(f'{name} data-fitting error (SSE): {np.sum(residual**2):.6f}')
 ```
 :::
 
