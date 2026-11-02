@@ -682,58 +682,45 @@ Use 200 noisy observations. Try lam = 0.001, 0.1, 1, and 100.
 ::: {.live-demo}
 ```{pyodide}
 #| max-lines: 10
-# A taller matrix: 200 observations, 5 coefficients, one zero column.
 rng = np.random.default_rng(42)
 n_data, noise_std, lam = 200, 0.5, 0.1
-t = np.linspace(-1, 1, n_data)
-# Four well-conditioned polynomial columns; only the last column is zero.
-A_long = np.column_stack([np.ones(n_data), t, 0.5*(3*t**2-1),
-                          0.5*(5*t**3-3*t), np.zeros(n_data)])
-x_true = np.array([1., 2., 3., 4., 5.])
-b_clean = A_long @ x_true
-b_noisy = b_clean + rng.normal(0, noise_std, n_data)
-ATA = A_long.T @ A_long
 
-# lstsq handles the singular system without explicitly inverting A.T @ A.
+# Random matrix with one zero column.
+A_long = rng.normal(size=(n_data, 5))
+A_long[:, -1] = 0
+x_true = np.array([1., 2., 3., 4., 5.])
+
+# Multiply to generate true data, then add Gaussian noise.
+b_true = A_long @ x_true
+b_noisy = b_true + rng.normal(0, noise_std, n_data)
+
+# Invert the noisy data.
+ATA = A_long.T @ A_long
+try:
+    x_inv = np.linalg.inv(ATA) @ A_long.T @ b_noisy
+except np.linalg.LinAlgError:
+    print('Direct inversion fails: A.T @ A is singular.')
 x_ls = np.linalg.lstsq(A_long, b_noisy, rcond=None)[0]
 x_ridge = np.linalg.solve(ATA + lam*np.eye(5), A_long.T @ b_noisy)
-print('Shape / rank:', A_long.shape, np.linalg.matrix_rank(A_long))
-print('True coefficients:', x_true)
-print('Unregularized:    ', np.round(x_ls, 3))
-print('Regularized:      ', np.round(x_ridge, 3))
-for name, fit in [('Unregularized', x_ls), ('Regularized', x_ridge)]:
-    print(name, 'coefficient RMSE (first 4):',
-          round(np.sqrt(np.mean((fit[:4]-x_true[:4])**2)), 3),
-          'noisy-data SSE:', round(np.sum((A_long @ fit-b_noisy)**2), 3))
+print('True x:         ', x_true)
+print('Least squares:  ', np.round(x_ls, 3))
+print('Regularized x:  ', np.round(x_ridge, 3))
 
-# Repeat with independent Gaussian noise to compare variability.
-B = b_clean[:, None] + rng.normal(0, noise_std, (n_data, 200))
-fits_ls = np.linalg.lstsq(A_long, B, rcond=None)[0]
-fits_ridge = np.linalg.solve(ATA + lam*np.eye(5), A_long.T @ B)
-print('Repeated-fit SD, unregularized:', np.round(fits_ls.std(axis=1, ddof=1), 3))
-print('Repeated-fit SD, regularized:  ', np.round(fits_ridge.std(axis=1, ddof=1), 3))
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 3.5))
-axes[0].scatter(t, b_noisy, s=8, alpha=0.4, label='Noisy data')
-axes[0].plot(t, b_clean, 'k--', label='Noise-free signal')
-axes[0].plot(t, A_long @ x_ls, label='Unregularized')
-axes[0].plot(t, A_long @ x_ridge, label='Regularized')
-axes[0].set(xlabel='t', ylabel='Data')
-axes[0].legend(fontsize=8)
-for fits, shift, label in [(fits_ls, -0.08, 'Unregularized'),
-                           (fits_ridge, 0.08, 'Regularized')]:
-    axes[1].errorbar(np.arange(1, 6)+shift, fits.mean(axis=1),
-                     yerr=fits.std(axis=1, ddof=1), fmt='o', capsize=3,
-                     label=label+' mean ± SD')
-axes[1].plot(np.arange(1, 6), x_true, 'kx', label='True')
-axes[1].set(xticks=np.arange(1, 6), xlabel='Coefficient index', ylabel='Coefficient')
-axes[1].legend(fontsize=8)
-fig.tight_layout()
+indices = np.arange(1, 6)
+plt.figure(figsize=(7, 3.5))
+plt.plot(indices, x_true, 'kx', markersize=9, label='True x')
+plt.plot(indices-0.06, x_ls, 'o', label='Least squares')
+plt.plot(indices+0.06, x_ridge, 'o', label='Regularized')
+plt.xticks(indices)
+plt.xlabel('Unknown index')
+plt.ylabel('Value')
+plt.legend()
+plt.tight_layout()
 plt.show()
 ```
 :::
 
-The four nonzero columns are well conditioned. Regularization makes the normal matrix invertible and introduces shrinkage bias; a small penalty changes these already stable estimates only slightly. Too much regularization underfits. The zero fifth column remains unobservable: both fits select $x_5=0$, not its true value of 5.
+Generate a random matrix, multiply by the true unknowns, add Gaussian noise, and invert. Adding $\lambda I$ makes the singular normal matrix invertible; a large penalty biases the estimates toward zero. The zero fifth column remains unobservable: both fits select $x_5=0$, not its true value of 5.
 
 ## Prior knowledge as extra equations
 
