@@ -686,9 +686,9 @@ Use 200 noisy observations. Try lam = 0.001, 0.1, 1, and 100.
 rng = np.random.default_rng(42)
 n_data, noise_std, lam = 200, 0.5, 0.1
 t = np.linspace(-1, 1, n_data)
-# Columns 3 and 4 are nearly dependent, making noise amplification visible.
-A_long = np.column_stack([np.ones(n_data), t, t**2,
-                          t**2 + 0.01*np.sin(5*t), np.zeros(n_data)])
+# Four well-conditioned polynomial columns; only the last column is zero.
+A_long = np.column_stack([np.ones(n_data), t, 0.5*(3*t**2-1),
+                          0.5*(5*t**3-3*t), np.zeros(n_data)])
 x_true = np.array([1., 2., 3., 4., 5.])
 b_clean = A_long @ x_true
 b_noisy = b_clean + rng.normal(0, noise_std, n_data)
@@ -733,7 +733,7 @@ plt.show()
 ```
 :::
 
-Nearly dependent columns amplify Gaussian noise. Regularization reduces coefficient variability at the cost of bias; too much regularization underfits. The zero fifth column remains unobservable: both fits select $x_5=0$, not its true value of 5.
+The four nonzero columns are well conditioned. Regularization makes the normal matrix invertible and introduces shrinkage bias; a small penalty changes these already stable estimates only slightly. Too much regularization underfits. The zero fifth column remains unobservable: both fits select $x_5=0$, not its true value of 5.
 
 ## Prior knowledge as extra equations
 
